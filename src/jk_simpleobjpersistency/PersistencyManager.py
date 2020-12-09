@@ -79,7 +79,7 @@ class PersistencyManager(object):
 		if baseDirPath is not None:
 			assert isinstance(baseDirPath, str)
 
-		self.__baseDirPath = baseDirPath
+		self.__baseDirPath = os.path.abspath(baseDirPath)
 		self.__classRecords = {}
 		self.__objCache = {}
 	#
@@ -125,8 +125,13 @@ class PersistencyManager(object):
 			if not self.__baseDirPath:
 				raise Exception("No base dir path and no explicit dir path specified!")
 			dirPath = os.path.join(self.__baseDirPath, clazz.__name__)
+		else:
+			if not os.path.isabs(dirPath):
+				dirPath = os.path.join(self.__baseDirPath, dirPath)
+
 		if not os.path.isdir(dirPath):
 			os.mkdir(dirPath)
+
 		cr = _ClassRecord(clazz, dirPath, defaults)
 		self.__classRecords[clazz.__name__] = cr
 
