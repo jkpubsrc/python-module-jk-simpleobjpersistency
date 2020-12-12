@@ -13,10 +13,11 @@ class _ClassRecord(object):
 	## Constructor
 	################################################################################################################################
 
-	def __init__(self, clazz:type, dirPath:str, defaults:dict):
+	def __init__(self, clazz:type, dirPath:str, defaults:dict, ctx = None):
 		self.clazz = clazz
 		self.dirPath = dirPath
 		self.defaults = defaults
+		self.ctx = ctx
 		self.__nNextIdentifier = None
 	#
 

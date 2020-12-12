@@ -3,9 +3,11 @@
 import os
 import copy
 import json
+import typing
 
 import jk_json
 import jk_utils
+import jk_typing
 
 from ._ClassRecord import _ClassRecord
 
@@ -69,15 +71,19 @@ def _del(self):
 
 
 
-class PersistencyManager(object):
+class PersistencyManager2(object):
 
 	################################################################################################################################
 	## Constructor
 	################################################################################################################################
 
+	@jk_typing.checkFunctionSignature()
 	def __init__(self, baseDirPath:str):
 		if baseDirPath is not None:
 			assert isinstance(baseDirPath, str)
+			baseDirPath = os.path.abspath(baseDirPath)
+			if not os.path.isdir(baseDirPath):
+				os.makedirs(baseDirPath)
 
 		self.__baseDirPath = os.path.abspath(baseDirPath)
 		self.__classRecords = {}
@@ -109,7 +115,7 @@ class PersistencyManager(object):
 	## Public Methods
 	################################################################################################################################
 
-	def registerClass(self, clazz:type, defaults = None, dirPath:str = None, autoStore:bool = False):
+	def registerClass(self, clazz:type, defaults = None, dirPath:str = None, autoStore:bool = False, ctx = None):
 		assert clazz is not None
 
 		assert isinstance(clazz, type)
@@ -117,7 +123,7 @@ class PersistencyManager(object):
 			defaults = {}
 		else:
 			if not isinstance(defaults, dict):
-				defaults = defaults.serialize()
+				defaults = defaults.serialize(ctx)
 		if dirPath:
 			assert isinstance(dirPath, str)
 
@@ -130,9 +136,9 @@ class PersistencyManager(object):
 				dirPath = os.path.join(self.__baseDirPath, dirPath)
 
 		if not os.path.isdir(dirPath):
-			os.mkdir(dirPath)
+			os.makedirs(dirPath)
 
-		cr = _ClassRecord(clazz, dirPath, defaults)
+		cr = _ClassRecord(clazz, dirPath, defaults, ctx)
 		self.__classRecords[clazz.__name__] = cr
 
 		clazz.isNew = _isNew
@@ -237,7 +243,7 @@ class PersistencyManager(object):
 			identifier = cr.findFreeIdentifier()
 
 		obj = cr.clazz()
-		obj.deserialize(copy.deepcopy(cr.defaults))
+		obj.deserialize(cr.ctx, copy.deepcopy(cr.defaults))
 
 		obj._x_identifier = identifier
 		obj._x_persisteer = self
@@ -291,7 +297,7 @@ class PersistencyManager(object):
 
 			jData = jk_json.loadFromFile(filePath)
 			obj = cr.clazz()
-			obj.deserialize(jData)
+			obj.deserialize(cr.ctx, jData)
 
 			obj._x_identifier = identifier
 			obj._x_persisteer = self
@@ -317,7 +323,7 @@ class PersistencyManager(object):
 
 			jData = jk_json.loadFromFile(filePath)
 			obj = cr.clazz()
-			obj.deserialize(jData)
+			obj.deserialize(cr.ctx, jData)
 
 			obj._x_identifier = identifier
 			obj._x_persisteer = self
@@ -336,7 +342,7 @@ class PersistencyManager(object):
 		assert identifier is not None
 		cr = self.__classRecords[clazz.__name__]
 		filePath = os.path.join(cr.dirPath, identifier + ".json")
-		jData = obj.serialize()
+		jData = obj.serialize(cr.ctx)
 		with jk_utils.file_rw.openWriteText(filePath) as f:
 			f.write(json.dumps(jData, indent="\t"))
 
@@ -353,12 +359,29 @@ class PersistencyManager(object):
 		filePath = os.path.join(cr.dirPath, identifier + ".json")
 		if os.path.exists(filePath):
 			os.unlink(filePath)
+		obj._x_persisteer = None
 
 		dataMap = self.__objCache[clazz.__name__]
 		if obj._x_identifier in dataMap:
 			del dataMap[obj._x_identifier]
 
 		obj._x_persisteer = None
+	#
+
+	def destroyObjectByID(self, clazz:type, identifier:str):
+		assert clazz is not None
+
+		cr = self.__classRecords[clazz.__name__]
+		dataMap = self.__objCache[clazz.__name__]
+
+		if identifier in dataMap:
+			obj = dataMap[identifier]
+			del dataMap[identifier]
+			obj._x_persisteer = None
+
+		filePath = os.path.join(cr.dirPath, identifier + ".json")
+		if os.path.exists(filePath):
+			os.unlink(filePath)
 	#
 
 	def destroyAllObjects(self, clazz:type):
