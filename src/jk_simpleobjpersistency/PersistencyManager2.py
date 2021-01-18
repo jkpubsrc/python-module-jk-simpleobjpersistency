@@ -230,7 +230,7 @@ class PersistencyManager2(object):
 	# @param		identifier str			If present specifies the identifier that later on can be used to retrieve this object again.
 	# @return		object					Returns the object.
 	#
-	def createObject(self, clazz:type, identifier:str = None):
+	def createObject(self, clazz:type, identifier:str = None, deserializationData:dict = None):
 		assert clazz is not None
 
 		cr = self.__classRecords[clazz.__name__]
@@ -243,7 +243,10 @@ class PersistencyManager2(object):
 			identifier = cr.findFreeIdentifier()
 
 		obj = cr.clazz()
-		obj.deserialize(cr.ctx, copy.deepcopy(cr.defaults))
+		if deserializationData is not None:
+			obj.deserialize(cr.ctx, deserializationData)
+		else:
+			obj.deserialize(cr.ctx, copy.deepcopy(cr.defaults))
 
 		obj._x_identifier = identifier
 		obj._x_persisteer = self
