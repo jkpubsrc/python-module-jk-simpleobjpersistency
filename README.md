@@ -8,7 +8,7 @@ This python module provides a simple persistency for data objects.
 
 Information about this module can be found here:
 
-* [github.org](https://github.com/jkpubsrc/python-module-jk-simpleobjpersistency)
+* [github.com](https://github.com/jkpubsrc/python-module-jk-simpleobjpersistency)
 * [pypi.python.org](https://pypi.python.org/pypi/jk_simpleobjpersistency)
 
 How to use this module
